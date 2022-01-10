@@ -107,7 +107,10 @@ mod client;
 mod eventloop;
 mod framed;
 mod state;
+#[cfg(feature = "tls")]
 mod tls;
+
+pub mod tokio_compat;
 
 pub use async_channel::{SendError, Sender, TrySendError};
 pub use client::{AsyncClient, Client, ClientError, Connection};
@@ -115,9 +118,12 @@ pub use eventloop::{ConnectionError, Event, EventLoop};
 pub use mqttbytes::v4::*;
 pub use mqttbytes::*;
 pub use state::{MqttState, StateError};
-pub use tokio_rustls::rustls::internal::pemfile::{certs, pkcs8_private_keys, rsa_private_keys};
-pub use tokio_rustls::rustls::ClientConfig;
+#[cfg(feature = "tls")]
 pub use tls::Error;
+#[cfg(feature = "tls")]
+pub use tokio_rustls::rustls::internal::pemfile::{certs, pkcs8_private_keys, rsa_private_keys};
+#[cfg(feature = "tls")]
+pub use tokio_rustls::rustls::ClientConfig;
 
 pub type Incoming = Packet;
 
@@ -194,14 +200,15 @@ impl From<Unsubscribe> for Request {
 #[derive(Clone)]
 pub enum Transport {
     Tcp,
+    #[cfg(feature = "tls")]
     Tls(TlsConfiguration),
     #[cfg(unix)]
     Unix,
     #[cfg(feature = "websocket")]
     #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
     Ws,
-    #[cfg(feature = "websocket")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "websocket")))]
+    #[cfg(all(feature = "websocket", feature = "tls"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "websocket", feature = "tls"))))]
     Wss(TlsConfiguration),
 }
 
@@ -218,6 +225,7 @@ impl Transport {
     }
 
     /// Use secure tcp with tls as transport
+    #[cfg(feature = "tls")]
     pub fn tls(
         ca: Vec<u8>,
         client_auth: Option<(Vec<u8>, Key)>,
@@ -232,6 +240,7 @@ impl Transport {
         Self::tls_with_config(config)
     }
 
+    #[cfg(feature = "tls")]
     pub fn tls_with_config(tls_config: TlsConfiguration) -> Self {
         Self::Tls(tls_config)
     }
@@ -283,9 +292,10 @@ pub enum TlsConfiguration {
         client_auth: Option<(Vec<u8>, Key)>,
     },
     /// Injected rustls ClientConfig for TLS, to allow more customisation.
+    #[cfg(feature = "tls")]
     Rustls(Arc<ClientConfig>),
 }
-
+#[cfg(feature = "tls")]
 impl From<ClientConfig> for TlsConfiguration {
     fn from(config: ClientConfig) -> Self {
         TlsConfiguration::Rustls(Arc::new(config))
@@ -694,7 +704,7 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "websocket")]
+    #[cfg(all(feature = "websocket", feature = "tls"))]
     fn no_scheme() {
         let mut _mqtt_opts = MqttOptions::new("client_a", "a3f8czas.iot.eu-west-1.amazonaws.com/mqtt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=MyCreds%2F20201001%2Feu-west-1%2Fiotdevicegateway%2Faws4_request&X-Amz-Date=20201001T130812Z&X-Amz-Expires=7200&X-Amz-Signature=9ae09b49896f44270f2707551581953e6cac71a4ccf34c7c3415555be751b2d1&X-Amz-SignedHeaders=host", 443);
 

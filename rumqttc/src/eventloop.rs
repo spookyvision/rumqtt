@@ -1,14 +1,23 @@
+#[cfg(feature = "tls")]
+use crate::tls;
 use crate::{framed::Network, Transport};
-use crate::{tls, Incoming, MqttState, Packet, Request, StateError};
+use crate::{Incoming, MqttState, Packet, Request, StateError};
 use crate::{MqttOptions, Outgoing};
 
 use async_channel::{bounded, Receiver, Sender};
 #[cfg(feature = "websocket")]
-use async_tungstenite::tokio::{connect_async, connect_async_with_tls_connector};
+use async_tungstenite::tokio::connect_async;
+#[cfg(all(feature = "websocket", feature = "tls"))]
+use async_tungstenite::tokio::connect_async_with_tls_connector;
+
 use mqttbytes::v4::*;
-use tokio::net::TcpStream;
+//use tokio::net::TcpStream;
+use crate::tokio_compat::net::TcpStream;
 #[cfg(unix)]
-use tokio::net::UnixStream;
+//use tokio::net::UnixStream;
+use crate::tokio_compat::net::UnixStream;
+use async_compat::CompatExt;
+
 use tokio::select;
 use tokio::time::{self, error::Elapsed, Instant, Sleep};
 #[cfg(feature = "websocket")]
@@ -30,6 +39,7 @@ pub enum ConnectionError {
     Timeout(#[from] Elapsed),
     #[error("Packet parsing error: {0}")]
     Mqtt4Bytes(mqttbytes::Error),
+    #[cfg(feature = "tls")]
     #[error("Network: {0}")]
     Network(#[from] tls::Error),
     #[error("I/O: {0}")]
@@ -271,8 +281,9 @@ async fn network_connect(options: &MqttOptions) -> Result<Network, ConnectionErr
             let addr = options.broker_addr.as_str();
             let port = options.port;
             let socket = TcpStream::connect((addr, port)).await?;
-            Network::new(socket, options.max_incoming_packet_size)
+            Network::new(socket.compat(), options.max_incoming_packet_size)
         }
+        #[cfg(feature = "tls")]
         Transport::Tls(tls_config) => {
             let socket = tls::tls_connect(&options, &tls_config).await?;
             Network::new(socket, options.max_incoming_packet_size)
@@ -281,7 +292,7 @@ async fn network_connect(options: &MqttOptions) -> Result<Network, ConnectionErr
         Transport::Unix => {
             let file = options.broker_addr.as_str();
             let socket = UnixStream::connect(Path::new(file)).await?;
-            Network::new(socket, options.max_incoming_packet_size)
+            Network::new(socket.compat(), options.max_incoming_packet_size)
         }
         #[cfg(feature = "websocket")]
         Transport::Ws => {
@@ -298,7 +309,7 @@ async fn network_connect(options: &MqttOptions) -> Result<Network, ConnectionErr
 
             Network::new(WsStream::new(socket), options.max_incoming_packet_size)
         }
-        #[cfg(feature = "websocket")]
+        #[cfg(all(feature = "websocket", feature = "tls"))]
         Transport::Wss(tls_config) => {
             let request = http::Request::builder()
                 .method(http::Method::GET)

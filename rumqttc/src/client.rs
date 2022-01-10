@@ -7,8 +7,10 @@ use bytes::Bytes;
 use mqttbytes::v4::*;
 use mqttbytes::*;
 use std::mem;
-use tokio::runtime;
-use tokio::runtime::Runtime;
+//use tokio::runtime;
+//use tokio::runtime::Runtime;
+use crate::tokio_compat::runtime;
+use crate::tokio_compat::runtime::Runtime;
 
 /// Client Error
 #[derive(Debug, thiserror::Error)]
