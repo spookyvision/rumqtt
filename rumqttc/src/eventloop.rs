@@ -10,15 +10,15 @@ use async_tungstenite::tokio::connect_async;
 #[cfg(all(feature = "websocket", feature = "tls"))]
 use async_tungstenite::tokio::connect_async_with_tls_connector;
 
-use mqttbytes::v4::*;
-//use tokio::net::TcpStream;
-use crate::tokio_compat::net::TcpStream;
 #[cfg(unix)]
 //use tokio::net::UnixStream;
 use crate::tokio_compat::net::UnixStream;
+use crate::tokio_compat::{net::TcpStream, time};
+use mqttbytes::v4::*;
 
 use tokio::select;
-use tokio::time::{self, error::Elapsed, Instant, Sleep};
+use tokio::time::{error::Elapsed, Instant, Sleep};
+
 #[cfg(feature = "websocket")]
 use ws_stream_tungstenite::WsStream;
 
@@ -136,7 +136,8 @@ impl EventLoop {
             self.network = Some(network);
 
             if self.keepalive_timeout.is_none() {
-                self.keepalive_timeout = Some(Box::pin(time::sleep(self.options.keep_alive)));
+                self.keepalive_timeout =
+                    Some(Box::pin(tokio::time::sleep(self.options.keep_alive)));
             }
 
             return Ok(Event::Incoming(connack));

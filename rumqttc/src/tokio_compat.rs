@@ -37,6 +37,25 @@ pub mod net {
     pub use smol::net::TcpStream;
 }
 
+pub mod time {
+    use std::time::Duration;
+
+    use futures_core::Future;
+    use smol::Timer;
+    use smol_timeout::{Timeout, TimeoutExt};
+
+    pub fn timeout<T>(after: Duration, future: T) -> Timeout<T>
+    where
+        T: Future,
+    {
+        future.timeout(after)
+    }
+
+    pub fn sleep(amount: Duration) -> Timer {
+        Timer::after(amount)
+    }
+}
+
 pub mod io {
     pub use smol::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
