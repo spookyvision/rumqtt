@@ -20,13 +20,15 @@ tls = ["rustls"]
 [dependencies]
 #tokio = { version = "1.0", features = ["rt", "macros", "io-util", "net", "time"] }
 tokio = { version = "1.0", features = ["macros", "io-util", "net", "time"] }
+futures-core = "0.3"
+pin-project-lite = "0.2"
 #tokio-rustls = "0.22"
 async-tungstenite = { version = "0.13.1", default-features = false, features = ["tokio-rustls"], optional = true }
 ws_stream_tungstenite = { version = "0.6.1", default-features = false, features = ["tokio_io"], optional = true }
 rustls = { version = "0.20.2", optional = true }
 
 smol = "1.2"
-async-compat = "0.2"
+#async-compat = "0.2"
 bytes = "1.0"
 webpki = "0.21"
 mqttbytes = { path = "../mqttbytes", version = "0.6" }

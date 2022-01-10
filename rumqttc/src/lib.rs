@@ -100,6 +100,7 @@
 extern crate log;
 
 use std::fmt::{self, Debug, Formatter};
+#[cfg(feature = "tls")]
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -111,6 +112,7 @@ mod state;
 mod tls;
 
 pub mod tokio_compat;
+pub mod tokio_read_buf;
 
 pub use async_channel::{SendError, Sender, TrySendError};
 pub use client::{AsyncClient, Client, ClientError, Connection};

@@ -16,7 +16,6 @@ use crate::tokio_compat::net::TcpStream;
 #[cfg(unix)]
 //use tokio::net::UnixStream;
 use crate::tokio_compat::net::UnixStream;
-use async_compat::CompatExt;
 
 use tokio::select;
 use tokio::time::{self, error::Elapsed, Instant, Sleep};
@@ -281,7 +280,7 @@ async fn network_connect(options: &MqttOptions) -> Result<Network, ConnectionErr
             let addr = options.broker_addr.as_str();
             let port = options.port;
             let socket = TcpStream::connect((addr, port)).await?;
-            Network::new(socket.compat(), options.max_incoming_packet_size)
+            Network::new(socket, options.max_incoming_packet_size)
         }
         #[cfg(feature = "tls")]
         Transport::Tls(tls_config) => {
@@ -292,7 +291,7 @@ async fn network_connect(options: &MqttOptions) -> Result<Network, ConnectionErr
         Transport::Unix => {
             let file = options.broker_addr.as_str();
             let socket = UnixStream::connect(Path::new(file)).await?;
-            Network::new(socket.compat(), options.max_incoming_packet_size)
+            Network::new(socket, options.max_incoming_packet_size)
         }
         #[cfg(feature = "websocket")]
         Transport::Ws => {
